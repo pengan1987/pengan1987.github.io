@@ -1,0 +1,105 @@
+<html><head><title>在中国接入互联网30周年之时，搭一台1994年的Linux服务器（下）</title></head><body><h1>在中国接入互联网30周年之时，搭一台1994年的Linux服务器（下）</h1><p>作者：蓬岸 Dr.Quest<br>知乎文章编号：701922083<br>创建于：2024-06-06 2:01:20<br>修改于：2024-06-06 10:41:46</p><hr><p data-pid="fhxByni3">在上两集中，我们参照1994年时的技术条件，完成了一台接入互联网的早期Linux服务器的还原，而这一篇，我们将从1990年代到2000年代初Linux安装最让人向往却又头疼的部分开始——Xwindow。</p><p data-pid="p10jA4Tf"><a href="https://zhuanlan.zhihu.com/p/700400046" class="internal">在中国接入互联网30周年之时，搭一台1994年的Linux服务器（上）</a></p><p data-pid="Dnoh4SHK"><a href="https://zhuanlan.zhihu.com/p/700820663" class="internal">在中国接入互联网30周年之时，搭一台1994年的Linux服务器（中）</a></p><h2>配置XFree86</h2><p data-pid="7boNHlid">从Linux 0.95第一次运行起Xwindows图形界面开始，直到千禧年前后的在第一波Linux桌面热潮，Xwindow的配置一直是让许多爱好者心惊胆战的话题之一。先不说市面上显卡支持程度不一，如果你不能正确配置ModeLine所包含的所有参数，报错并弹回黑窗口只是小意思，它甚至会“炸毁”你的显示器。</p><figure data-size="normal"><img src="https://pic1.zhimg.com/v2-1790b07eef61a677c33c73fd453a8ef0_b.jpg" data-caption="" data-size="normal" data-rawwidth="1031" data-rawheight="1527" class="origin_image zh-lightbox-thumb" width="1031" data-original="https://pic1.zhimg.com/v2-1790b07eef61a677c33c73fd453a8ef0_r.jpg" data-original-token="v2-1790b07eef61a677c33c73fd453a8ef0"/></figure><p data-pid="-FseYN2q">在Hackaday上一篇提到90年代Linux体验的文章中，评论区里有提到ModeLine损坏显示器的情况</p><p data-pid="HYSbKona"><a href="https://hackaday.com/2023/11/08/reliving-the-authentic-90s-linux-experience/" class=" external" target="_blank" rel="nofollow noreferrer"><span class="invisible">https://</span><span class="visible">hackaday.com/2023/11/08</span><span class="invisible">/reliving-the-authentic-90s-linux-experience/</span><span class="ellipsis"></span></a></p><h3>1994年的Linux支持哪些显卡？</h3><p data-pid="Ni4CoA_9">跟安装黑苹果一样，我一向建议所有Linux装机者先搞明白哪些硬件可以兼容，然后再装机。SLS提供的Xwindow是XFree86 2.0版本，发布于1993年10月，我们至今仍然能在网上找到其发行公告：<a href="https://www.krsaborio.net/bsd/research/1993/1031.htm" class=" wrap external" target="_blank" rel="nofollow noreferrer">Announcing the release of XFree86 2.0</a></p><p data-pid="IdozuB22">在第五节Supported video-card chipsets中，我们可以找到所有支持的显卡列表，在整个列表中，只有ISA和VLB插槽的显卡，在86Box模拟器中，大多数对应的显卡都可以找到，但在闲鱼等线下市场上，只有Cirrus Logic GD542x系列略微容易找到，Trident TVGA8900/9000系列偶尔出现，而S3、ATI等芯片的ISA显卡即使出现价格也偏高，而较为常见也比较便宜的Realtek RTG3105/3106、Chips &amp; Tech 655xx则不被支持，只能使用黑白或16色的显示模式。</p><h3>配置XFree86支持的显卡（包括PCI后续型号）</h3><p data-pid="Tex9FbFE">我们以Pocket 386使用的Cirrus Logic GD5429为例，使用root用户登录，首先我们用SLS提供的syssetup命令简化一些配置操作，先选5，系统会提示鼠标的类型，按照机器真实的情况选择就可以，比如我先择2，就是PS/2鼠标，然后会问显卡的类型，我们选7，也就是Super VGA 256 Color。</p><figure data-size="normal"><img src="https://pic4.zhimg.com/v2-34e059f3b30ed5db96eb5a87cc77e5c7_b.jpg" data-caption="" data-size="normal" data-rawwidth="720" data-rawheight="400" class="origin_image zh-lightbox-thumb" width="720" data-original="https://pic4.zhimg.com/v2-34e059f3b30ed5db96eb5a87cc77e5c7_r.jpg" data-original-token="v2-34e059f3b30ed5db96eb5a87cc77e5c7"/></figure><p data-pid="HjaBb0tN">这一步系统主要是创建两个软链接，一个是/dev/mouse指向特定的鼠标外设，一个是/usr/X386/bin/X，指向特定的X server类型。</p><div class="highlight"><pre><code class="language-text">p:softland:~$  ls -l  /dev/mouse  /usr/X386/bin/X
+lrwxrwxrwx   1 root     root            6 Jun  5  1924 /dev/mouse -&gt; ps2aux
+lrwxrwxrwx   1 root     root            9 Jun  5  1924 /usr/X386/bin/X -&gt; XF86_SVGA*</code></pre></div><p data-pid="SqaLbziy">接下来就可以配置/usr/X386/lib/X11/Xconfig了，先把样本文件复制一份</p><div class="highlight"><pre><code class="language-bash"><span class="nb">cd</span> /usr/X386/lib/X11/
+cp Xconfig.dist Xconfig</code></pre></div><p data-pid="kmdfeubz">我们需要改动的地方有两处，一处是鼠标，默认是Microsoft，也就是微软协议的串口鼠标，因为我的案例使用的是PS/2鼠标，所以要把微软鼠标一行注释掉，改为PS/2鼠标，如果鼠标有中键，就把Emulate3Buttons注释掉。</p><div class="highlight"><pre><code class="language-kconfig">#
+# Mouse definition and related parameters
+#
+#Microsoft      &#34;/dev/mouse&#34;
+PS/2        &#34;/dev/mouse&#34;
+#  BaudRate     9600
+#  SampleRate   150
+#  Emulate3Buttons</code></pre></div><p data-pid="1gd1Rmpd">然后需要改动的一处是VGA256项目下，需要：</p><ul><li data-pid="l-7W-vfU">设置Chipset（芯片组）和VideoRam（显存）项目</li><li data-pid="rkKkW1ks">注释掉Virtual一行（虚拟分辨率）</li><li data-pid="1fUIe6fR">将&#34;1024x768i&#34;（隔行扫描）改为&#34;1024x768&#34;（逐行扫描）</li></ul><div class="highlight"><pre><code class="language-text">VGA256
+
+#
+# To disable SpeedUp, use NoSpeedUp
+#
+#  NoSpeedUp
+#  Virtual      1152 900
+  Chipset &#34;clgd5420&#34;
+  VideoRam 1024
+#  Virtual      1024 1024
+  ViewPort      0 0
+  Modes         &#34;1024x768&#34; &#34;800x600&#34; &#34;640x480&#34;</code></pre></div><p data-pid="FwBo5kP4">如果你使用的是支持的芯片组的后续型号，可以尝试在Chipset项目中设置对应芯片组的较老型号，比如Cirrus Logic GD5429并没有出现在XFree86 2.0的说明文档中，但它在86Box中与clgd5420/clgd5422/clgd5424选项都是兼容的。而PCI插槽的后续型号也可能兼容，比如更常见的PCI显卡CL-GD5446，只要保证VideoRam选项设置正确，就同样可以使用clgd5420/clgd5422/clgd5424选项驱动，而PCI插槽的Trident 9660/9680等则可以兼容tvga9000选项。</p><h3>XFree86 SVGA故障诊断</h3><p data-pid="H3fqAQlo"><b>下面带大家直面90年代~2000年代初最可怕的XFree86错误提示！</b>我想在2000年前侯应该有无数Linux爱好者见过这样的画面，如果它在当时是你唯一的电脑，这意味着你没有任何图形界面，只能使用陌生的VIM编辑器，和纸质手册（如果你有的话）来排查Xconfig的问题，由于语言的障碍，许多人走到这一步就会放弃，然后的结局就是：</p><p data-pid="Peq8gDwL"><b>格盘，重装Win98！</b></p><figure data-size="normal"><img src="https://pic1.zhimg.com/v2-4c8c307115c4ebca90d2aff8093ae3d8_b.jpg" data-caption="" data-size="normal" data-rawwidth="720" data-rawheight="400" class="origin_image zh-lightbox-thumb" width="720" data-original="https://pic1.zhimg.com/v2-4c8c307115c4ebca90d2aff8093ae3d8_r.jpg" data-original-token="v2-4c8c307115c4ebca90d2aff8093ae3d8"/></figure><p data-pid="vq0Ok0IS">标准VGA显示只有25行，所以上面的信息有一些不完整，我们以使用尝试使用TVGA9000兼容模式驱动Trident 9680为例来展示诊断XFree86 SVGA的思路，我把完整的报错信息在putty上抓取下来：</p><div class="highlight"><pre><code class="language-text">XFree86 Version 2.0 / X Window System
+(protocol Version 11, revision 0, vendor release 5000)
+Operating System: Linux
+Configured drivers:
+  VGA256: server for 8-bit colour SVGA (Patchlevel 0):
+      et4000, et3000, pvga1, wd90c00, wd90c10, wd90c30, wd90c31, gvga, ati,
+      tvga8800cs, tvga8900b, tvga8900c, tvga8900cl, tvga9000, clgd5420,
+      clgd5422, clgd5424, clgd5426, clgd5428, clgd6205, clgd6215, clgd6225,
+      clgd6235, ncr77c22, ncr77c22e, cpq_avga, oti067, oti077
+(using VT number 7)
+
+Xconfig: /usr/X386/lib/X11/Xconfig
+(**) stands for supplied, (--) stands for probed/default values
+(**) Mouse: type: PS/2, device: /dev/mouse, 3 button emulation
+(**) FontPath set to &#34;/usr/X386/lib/X11/fonts/misc/,/usr/X386/lib/X11/fonts/Type      1/,/usr/X386/lib/X11/fonts/Speedo/,/usr/X386/lib/X11/fonts/75dpi/&#34;
+(**) VGA256: chipset:  tvga9000
+(--) VGA256: videoram: 1024k
+(--) VGA256: clocks:   0.00  28.32  57.30  57.20   0.00  28.30   0.00   0.00
+(--) VGA256: clocks:   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00
+(--) VGA256: Maximum allowed dot-clock: 90MHz
+
+Fatal server error:
+There is no defined dot-clock matching mode &#34;1024x768&#34;
+
+xinit:  Interrupted system call (errno 4):  unexpected signal 13</code></pre></div><p data-pid="FgGBj5MU">我们在错误信息里看到芯片组目前配置的是tvga9000，显存1MB，如果这两项设置与你的硬件不符，就参考前一节修改Xconfig的VGA256一节。但目前并非是上述情况，我们继续分析错误信息，最后一条是：</p><p data-pid="G8VePrqf">Fatal server error: There is no defined dot-clock matching mode &#34;1024x768&#34;</p><p data-pid="ean4MYBP">这个错误说明该驱动无法自动识别显卡所支持的像素时钟频率，这在利用向后兼容性驱动PCI显卡的情况下特别常见，我们翻查Xconfig最后的modeline部分，发现1024x768分辨率需要50，62，65（单位是Mhz）的像素时钟频率。</p><div class="highlight"><pre><code class="language-text"> &#34;1024x768&#34;  62    1024 1092 1220 1344    768  786  791  810
+             65    1024 1072 1176 1272    768  778  779  804
+             50    1024 1056 1240 1272    768  768  775  806
+             50    1024 1056 1256 1288    768  768  775  806</code></pre></div><p data-pid="ghXSYSaD">类似地我们可以查到其他分辨率所需的像素时钟，因此我们在VGA256一节加入Clocks一段，后面跟随需要提供的像素频率即可。需要注意的一点是，在Modes里定义的每一项分辨率，都要有至少一个对应的像素时钟频率，比如这里25、28对应640x480，40对应的是800x600。</p><div class="highlight"><pre><code class="language-text">#
+# The 8-bit colour SVGA driver
+#
+VGA256
+
+#
+# To disable SpeedUp, use NoSpeedUp
+#
+  NoSpeedUp
+#  Virtual      1152 900
+  Chipset &#34;tvga9000&#34;
+#  Virtual      1024 1024
+  ViewPort      0 0
+  Modes         &#34;1024x768&#34; &#34;800x600&#34; &#34;640x480&#34;
+  VideoRam  1024
+  Clocks 65 62 50 25 28 40</code></pre></div><p data-pid="pOitOXZ3">如果你使用的是老式显示器，请尽可能查阅手册确定其支持的像素时钟频率，有些时候这一参数也被称作视频带宽。一些老式14寸显示器会标称其最高分辨率为1024x768，但视频带宽只有45Mhz，这种情况如果使用65Mhz的像素时钟，则可能造成显示器损坏，因为该显示器支持的是隔行显示的1024x768i，刚好使用45Mhz的像素时钟。</p><div class="highlight"><pre><code class="language-text"> &#34;1024x768i&#34; 44    1024 1064 1224 1264    768  777  785  817   Interlace
+#            45    1024 1032 1192 1264     768 768 778 793     Interlace
+#            45    1024 1064 1224 1264    768  789  799  817   Interlace
+             45    1024 1024 1184 1256     768 769 779 797      Interlace</code></pre></div><p data-pid="QiOKgKcu">如果一切顺利，就能看到FVWM正常启动了。</p><figure data-size="normal"><img src="https://pic1.zhimg.com/v2-0af75ac84834a939fca5061911e7436c_b.jpg" data-caption="" data-size="normal" data-rawwidth="1024" data-rawheight="768" class="origin_image zh-lightbox-thumb" width="1024" data-original="https://pic1.zhimg.com/v2-0af75ac84834a939fca5061911e7436c_r.jpg" data-original-token="v2-0af75ac84834a939fca5061911e7436c"/></figure><h3>配置不兼容显卡的16色/黑白模式</h3><p data-pid="QWlLpJYm">如果你有不兼容的显卡，比如Realtek RTG3106，可以尝试使用VGA16色或者黑白模式，这两个模式都可以支持800x600分辨率，仍然是以syssetup开始，我们以16色模式为例，在选择显卡类型时选择Standard VGA 16 color，然后仍然是编辑/usr/X386/lib/X11/Xconfig文件，不过这次我们关注的是VGA16一节：</p><div class="highlight"><pre><code class="language-text"># The 16-colour VGA driver
+#
+VGA16
+#  Virtual       800 600
+  Viewport      0 0
+  Modes         &#34;800x600&#34; &#34;640x480&#34;
+  Chipset &#34;generic&#34;
+  Clocks 25 40</code></pre></div><p data-pid="dOA7sEC8">Chipset设置为generic，这是大多数VGA显卡通用的选项（另一个选项是et4000），Modes加入“800x600”，Clocks添加对应的时钟选项，就可以以16色启动桌面了。</p><figure data-size="normal"><img src="https://pic3.zhimg.com/v2-710afb95634156af38ff5c4514b5731a_b.jpg" data-caption="" data-size="normal" data-rawwidth="800" data-rawheight="600" class="origin_image zh-lightbox-thumb" width="800" data-original="https://pic3.zhimg.com/v2-710afb95634156af38ff5c4514b5731a_r.jpg" data-original-token="v2-710afb95634156af38ff5c4514b5731a"/></figure><p data-pid="6pLQXn9S">黑白的配置与16色模式非常相似，syssetup选择显示模式为Standard VGA Mono，然后修改Xconfig即可</p><div class="highlight"><pre><code class="language-text"># The 1-bit mono SVGA driver
+#
+VGA2
+
+#  Virtual      800 600
+  ViewPort      0 0
+#  Modes                &#34;640x480&#34;
+  Modes         &#34;800x600&#34; &#34;640x480&#34;
+  Chipset &#34;generic&#34;
+  Clocks  25 40</code></pre></div><figure data-size="normal"><img src="https://pic3.zhimg.com/v2-cd0dc0d1e3fe697c22cc8554a9218a96_b.jpg" data-caption="" data-size="normal" data-rawwidth="800" data-rawheight="600" class="origin_image zh-lightbox-thumb" width="800" data-original="https://pic3.zhimg.com/v2-cd0dc0d1e3fe697c22cc8554a9218a96_r.jpg" data-original-token="v2-cd0dc0d1e3fe697c22cc8554a9218a96"/></figure><h2>运行Mosaic 2.4</h2><p data-pid="xsVCQNgT">由于Mosaic的编译依赖Motif库，但在<a href="https://www.gnu.org/philosophy/motif.zh-cn.html" class=" wrap external" target="_blank" rel="nofollow noreferrer">2012年之前，Motif库都并非开源软件</a>，而开源社区的替代品<a href="https://lesstif.sourceforge.net/" class=" wrap external" target="_blank" rel="nofollow noreferrer">LessTif 到</a>1995年才出现，在当时，如果Linux爱好者要在本机编译Mosaic，需要花费100~200美元购买一个商业授权的Motif拷贝。但对于预编译的二进制程序而言，Motif库是可以作为静态链接库分发的，也因此，对当时的爱好者而言，最容易获得Mosaic的方式是在FTP上搜索别人已经编译好的二进制版本。</p><p data-pid="O12BdJ5l"><span class="nolink">http://ibiblio.org</span>保存了一系列较早的Mosaic二进制：<a href="https://www.ibiblio.org/pub/Linux/apps/www/browsers/mosaic/!INDEX.html" class=" wrap external" target="_blank" rel="nofollow noreferrer">/public/ftp/pub/Linux/apps/www/browsers/mosaic</a></p><p data-pid="FFEzxaAe">我们使用Mosaic-2.4.bin.tar.gz，这个版本创建于1994年4月11日，与中科院高能所的WWW服务器设立的时间最为接近。需要注意的是，虽然它的文件名带有.gz，但并非是一个gzip格式的包，因此解压时只要tar xvf就好。</p><figure data-size="normal"><img src="https://pic2.zhimg.com/v2-bb5adff4e58cc24c0987b4c4c31edb0d_b.jpg" data-caption="" data-size="normal" data-rawwidth="1024" data-rawheight="768" class="origin_image zh-lightbox-thumb" width="1024" data-original="https://pic2.zhimg.com/v2-bb5adff4e58cc24c0987b4c4c31edb0d_r.jpg" data-original-token="v2-bb5adff4e58cc24c0987b4c4c31edb0d"/></figure><p data-pid="Y2cIPYzi">中科院高能所近期重建了他们的早期网站：<a href="https://first-www.ihep.ac.cn/" class=" wrap external" target="_blank" rel="nofollow noreferrer">Institute of High Energy Physics, Beijing</a> 但由于高能所的新服务器已经不支持HTTP/1.0协议，它支持的最旧的协议是1997年的HTTP1.1，而至少要到1996年夏天的浏览器才开始支持相关特性，我们已经不能直接在Mosaic 2.4打开它，上面的截图是我将其首页下载到本地完成的。</p><p data-pid="dTYsXChp">注：IHEP保存的网页略晚于1994年夏天，用Mosaic 2.4版本打开有个多余的“--&gt;”，用ibiblio提供的Mosaic 2.5版（Mosaic-2.5.bin.tar.gz）打开就没有问题，可以根据展示的需要调整。</p><p data-pid="zsp04fDA">如果你希望找到更老版本的Mosaic，可以尝试下载1993年底的Infomagic Linux CDROM，能够找到Xmosaic 1.3和Mosaic 2.0版本</p><p data-pid="jkGHNf1g"><a href="https://archive.org/details/Infomagic_Linux_CDROM_December_1993" class=" external" target="_blank" rel="nofollow noreferrer"><span class="invisible">https://</span><span class="visible">archive.org/details/Inf</span><span class="invisible">omagic_Linux_CDROM_December_1993</span><span class="ellipsis"></span></a></p><h3>FVWM的小提示</h3><p data-pid="vwLclc1P">如果你从没用过FVWM，可能会不太习惯它的操作，它有三个菜单用来管理窗口：</p><ul><li data-pid="2PGtoPbT">左键菜单是程序菜单，有点类似Windows的开始菜单，可以用来调用程序，如果没有快捷方式的程序，比如Mosaic，则需要在Xterm终端里以命令行启动</li><li data-pid="IE09exBr">中键菜单是窗口操作，可以进行最大化、垂直最大化、最小化（图标化）、关闭窗口等操作</li><li data-pid="t4Z9a3eT">右键菜单用来切换程序，也用来恢复最小化的窗口</li></ul><figure data-size="normal"><img src="https://pic2.zhimg.com/v2-74a392ea46dd427a923215ddef36ecd9_b.jpg" data-caption="" data-size="normal" data-rawwidth="608" data-rawheight="343" class="origin_image zh-lightbox-thumb" width="608" data-original="https://pic2.zhimg.com/v2-74a392ea46dd427a923215ddef36ecd9_r.jpg" data-original-token="v2-74a392ea46dd427a923215ddef36ecd9"/></figure><h2>把它放到真的硬件上吧！</h2><p data-pid="moa8qrYo">在 <a class="member_mention" href="https://www.zhihu.com/people/c604c4a4daac6526771fe76b922b9611" data-hash="c604c4a4daac6526771fe76b922b9611" data-hovercard="p$b$c604c4a4daac6526771fe76b922b9611">@张浩斌</a> 老师的帮助下，我们成功地把这一镜像迁移到真实的硬件上：Pocket 386，一台符合了复古和现代硬件的平台，它使用了Ali M6117 SoC，内置一颗386SX 40Mhz CPU，并且配置了CL-GD5429显卡。因此它可以支持256色显示。</p><figure data-size="normal"><img src="https://pic4.zhimg.com/v2-e096c84545dd4f18a0856d90560006b7_b.jpg" data-caption="" data-size="normal" data-rawwidth="1920" data-rawheight="1081" class="origin_image zh-lightbox-thumb" width="1920" data-original="https://pic4.zhimg.com/v2-e096c84545dd4f18a0856d90560006b7_r.jpg" data-original-token="v2-e096c84545dd4f18a0856d90560006b7"/></figure><p data-pid="by5KIPtI">使用balenaEtcher，Win32 Disk Imager，或Linux的dd命令将86Box产生的.img镜像写入CF卡就可以尝试用Pocket 386启动了，建议使用512M的储存卡，如果使用大于512M的储存卡，则需要参考第一集：<a href="https://zhuanlan.zhihu.com/p/700400046" class="internal">在中国接入互联网30周年之时，搭一台1994年的Linux服务器（上）</a> 关闭LBA模式。</p><p data-pid="y8drM9Y7">Pocket 386的最佳分辨率是640x480，显存是512K，因此我们需要修改Xconfig，把VideoRam改成512，然后Modes里面只保留“640x480”，之后再启动Xwindow。</p><div class="highlight"><pre><code class="language-text"># The 8-bit colour SVGA driver
+#
+VGA256
+
+#
+# To disable SpeedUp, use NoSpeedUp
+#
+  NoSpeedUp
+#  Virtual      1152 900
+  Chipset &#34;clgd5424&#34;
+#  Virtual      1024 1024
+  ViewPort      0 0
+  Modes         &#34;640x480&#34;
+  VideoRam  512
+  Clocks 65 25 40</code></pre></div><h3>386SX加载Mosaic过慢的对策</h3><p data-pid="PtLFSQD2">在没有FPU的386SX/486SX电脑上，有时会遇到打开Mosaic很慢或卡死的问题，这是由于Mosaic尝试加载矢量字体，而这一操作又非常依赖系统的浮点性能的原因。此时需要修改Xconfig的FontPath设置：</p><div class="highlight"><pre><code class="language-text"># Multiple FontPath entries are allowed (which are concatenated together),
+# as well as specifying multiple comma-separated entries in one FontPath
+# command (or a combination of both methods)
+#
+FontPath        &#34;/usr/X386/lib/X11/fonts/misc/&#34;
+#FontPath        &#34;/usr/X386/lib/X11/fonts/Type1/&#34;
+FontPath        &#34;/usr/X386/lib/X11/fonts/Speedo/&#34;
+FontPath        &#34;/usr/X386/lib/X11/fonts/75dpi/&#34;
+# FontPath      &#34;/usr/X386/lib/X11/fonts/100dpi/&#34;</code></pre></div><p data-pid="y3BGsoV3">将Type1字体注释掉就可以大幅加快Mosaic加载的速度，如果需要，也可以将Speedo字体注释掉，但注释掉75dpi将导致Mosaic无法正确显示字体的大小和样式，不建议注释这一行。</p><h2>后记</h2><p data-pid="KrSc235p">这个系列到这里就要结束啦！其实这个系列的工作量已经超出我的预期，这两周我几乎是全职在创作这篇文章。我希望这个系列不仅是推测并重现高能所中国主页的技术架构，也希望能够更加完整地展示早期Linux的技术特性和运用时所会遇到的技术挑战，这也是我为什么会事无巨细地记录各种可能性和可能遇到的“坑”的原因。</p><figure data-size="normal"><img src="https://pic3.zhimg.com/v2-852d42fb90adc15a90f07f7d0483c1d6_b.jpg" data-caption="" data-size="normal" data-rawwidth="1303" data-rawheight="728" class="origin_image zh-lightbox-thumb" width="1303" data-original="https://pic3.zhimg.com/v2-852d42fb90adc15a90f07f7d0483c1d6_r.jpg" data-original-token="v2-852d42fb90adc15a90f07f7d0483c1d6"/></figure><p data-pid="-2SJhvH8">当那副只有偏色截图的IHEP/China Home Page重新出现在屏幕上的时候，即使它们无法做到完全一致，但这是值得的，因为在我看来，计算机历史本就应该是可以运行的。</p></body></html>
