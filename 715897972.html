@@ -1,0 +1,246 @@
+<html><head><title>欢迎来到没有WWW的世界：体验KA9Q（下）</title></head><body><h1>欢迎来到没有WWW的世界：体验KA9Q（下）</h1><p>作者：蓬岸 Dr.Quest<br>知乎文章编号：715897972<br>创建于：2024-08-22 12:58:27<br>修改于：2024-08-23 9:00:08</p><hr><p data-pid="osBSywSm">KA9Q NOS除了能够作为Internet客户端使用之外，它最吸引人的功能是可以用作服务器。在80年代，大部分Internet服务器都需要运行在昂贵的Unix工作站和专用服务器上，而KA9Q则可以使用仅有8088处理器的PC实现诸多服务器功能，这明显降低了Internet的使用门槛。作为这个系列下集，我们会在上集将KA9Q接入网络的基础上，启动FTP、Telnet、电子邮件（SMTP）、BBS和Finger服务。</p><h2>架设FTP服务器</h2><p data-pid="nxvIp04N">在WWW广泛使用之前，FTP文件传输协议可以说是Internet上最重要的协议。正如其名称所述，FTP的功能主要是在联网的电脑之间传送文件，在FTP协议流行的年代，它主要充当两种作用，一是作为网络内用户的存储区，让用户可以在联网的不同电脑中访问同一份文件，也就是今天常说的“网盘”业务。另外一个功能则是用于分发内容，特别是90年代初共享软件的广泛传播就是依托于FTP服务的，也就是“下载站”业务。</p><p data-pid="Pnc1UPLe">在启用FTP服务器之前，我们先对服务器进行简单的规划。在这个示例中，我们计划同时提供“网盘”和“下载站”两种业务。系统里的每个用户有自己专属的文件夹，而作为下载站的文件夹则会给匿名用户提供只读访问。在上集中，我们已经为KA9Q创建了独立的盘符N:，因此我们需要在DOS下创建类似下面的目录结构</p><div class="highlight"><pre><code class="language-text"><span></span>N:
++---FTPHOME
+|   +---ALICE
+|   \---BOB
+\---PUBLIC
+</code></pre></div><p data-pid="c22-3I0l"><code>FTPHOME</code>中包括了系统用户的个人文件，而<code>PUBLIC</code>则提供给匿名用户下载。</p><p data-pid="5RqO72jv">KA9Q使用跟目录下的<code>ftpusers</code>文件控制可登录的用户账户和权限。内容的格式为<code>用户名 密码 路径 权限</code>，文件的内容类似</p><div class="highlight"><pre><code class="language-bash"><span></span>alice dnbwg /ftphome/alice <span class="m">7</span>
+bob dnbwg /ftphome/bob <span class="m">7</span>
+anonymous * /public <span class="m">1</span>
+</code></pre></div><p data-pid="ExmhCZ9d">我们可以看出密码是明文的，这也体现出Internet的蛮荒时期安全性的脆弱。用户alice和bob的密码都是“dnbwg”，而匿名FTP用户anonymous则接受认一密码登录。权限通常只有三种：</p><ul><li data-pid="WyVGC6TV">数字 1（二进制001）：只读</li><li data-pid="beupyiDw">数字 3（二进制011）：仅添加新文件，不能删除和改写</li><li data-pid="aIL_y7KJ">数字 7（二进制111）：完全控制</li></ul><p data-pid="Uws6GTBE">因此上述<code>ftpusers</code>文件所描述的权限，即注册用户alice和bob分别对自己的目录具备完整的访问权限，而匿名用户anonymous则对public目录有只读的访问权限。</p><p data-pid="CGKAiiBR">接下来我们就可以在KA9Q的<code>NET&gt;</code>提示符下启动FTP服务器，使用<code>start ?</code>命令，我们可以看到KA9Q支持作为服务器的一系列互联网协议，比如SMTP、Telnet和FTP。使用<code>start ftp</code>就可以启动KA9Q的FTP服务器，并使用本机或另一台FTP目录。</p><p data-pid="5WApAZTR">值得一提的是，KA9Q的FTP虽然使用Windows和Linux的FTP命令都可以正常访问，但使用较新的FTP工具则可能出现一些问题，比如目前版本的FileZilla Client就无法正常列出文件目录。</p><h2>启用电子邮件服务和Telnet</h2><p data-pid="eHDfwHG6">电子邮件的历史其实比Internet还要早，1965年，MIT的兼容分时系统（CTSS）就支持在同一计算机的不同用户间传递消息，即“站内信”，在之后的二三十年里，许多大型机和小型机都具备了这一功能，基于Internet和其他计算机网络系统如FidoNet、Usenet的电子邮件系统也相继出现。可以说电子邮件和文件传输一样，都是计算机网络最“基础”的那部分功能。</p><p data-pid="NryT1yj5">我们将Telnet和电子邮件放在一起讲，是由于在Internet发展的早期，人们并不像今天一样广泛使用Webmail或专用电子邮件客户端，而通常是使用Telnet协议登录到服务器上远程收发电子邮件，而在KA9Q上，我们也无法直接通过<code>net&gt;</code>提示符收发电子邮件，必须先登录到KA9Q的Telnet服务器（可以是同一台电脑）才可以进行邮件收发的操作。</p><h3>准备E-Mail服务器的的文件结构</h3><p data-pid="tbLQjL72">熟悉Linux或其他Unix-like系统的朋友可能会了解它们的电子邮件通常存储在<code>/var/spool/mail</code>目录下，而KA9Q也参考了这一概念，需要创建<code>SPOOL</code>目录和相应的目录结构才可以让邮件系统正常工作。</p><div class="highlight"><pre><code class="language-text"><span></span>N:
++---SPOOL
+    +---HELP
+    +---MAIL
+    +---MQUEUE
+    +---RQUEUE
+    \---NEWS
+</code></pre></div><p data-pid="AFIXAFkB">其中MQUEUE和RQUEUE分别是发送和接收队列，而用户接收到的电子邮件则放在MAIL文件夹中。NEWS文件夹不是必要的，它只有在配合外部程序使用NNTP（网络新闻传输协议）时才会用到，HELP则是KA9Q Telnet服务器的联机帮助文件，同样也是可选的，这些文件可以在下载下面的<code>nos_kit.zip</code>文件，解压后得到<code>NOS_MISC.ZIP</code>中的<code>HELP</code>文件夹中找到。</p><p data-pid="Yyhz595R">ftp://ftp.ucsd.edu/hamradio/packet/tcpip/kit/nos_kit.zip</p><h3>启动邮件服务并发送站内信</h3><p data-pid="cwXEyPgy">在KA9Q的<code>net&gt;</code>提示符下，使用<code>start smtp</code>和<code>start telnet</code>分别启动SMTP和Telnet服务就可以尝试发送站内信了。使用KA9Q自带的Telnet工具可以<code>telnet 127.0.0.1</code>连线到本机，或使用其他Telnet软件，比如Putty连接到KA9Q服务器。</p><p data-pid="AXA_8CCa">登陆后KA9Q会提示用户名和密码，“Current msg#”是当前操作的邮件号，后面跟着的则是可供操作的命令。</p><div class="highlight"><pre><code class="language-text"><span></span>KA9Q NOS (ka9q8088)
+
+login:
+bob
+Password:
+[NET-H$]
+Welcome bob to the ka9q8088 TCP/IP Mailbox (920603 (KA9Q))
+Current msg# 0 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+</code></pre></div><p data-pid="1RNvAD6R">使用问号按钮就可以查看到所有命令的含义了。这其中不仅包括操作电子邮件的命令，也包括后面会提到的操作BBS公告牌的命令。</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 0 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+?
+(?)help    (A)rea     (B)ye      (C)hat     (D)ownload (E)scape   (F)inger
+
+(G)ateway  (H)elp     (I)nfo     (J)heard   (K)ill     (L)ist     (N)etrom
+
+(R)ead     (S)end     (T)elnet   (U)pload   (V)erbose  (W)hat     (Z)ap
+
+Current msg# 0 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+</code></pre></div><p data-pid="riK6GQb-">在上面的例子中，我们已经用账户bob登录，第一封邮件我们就发给自己吧，使用命令<code>s bob</code>回车，创建一份发给bob的邮件。</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 0 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+s bob
+Subject: My first mail
+Enter message.  Terminate with /EX or ^Z in first column (^A aborts):
+This is my first mail, send to myself for test.
+/EX
+Current msg# 0 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+</code></pre></div><p data-pid="dDsrEgjk">系统会提示输入邮件的标题和内容，编辑完成后，在邮件正文的结尾敲入<code>/EX</code>或按ctrl+z键后回车结束编辑，邮件就会发送出去。</p><p data-pid="c5cmNbqS">接下来我们用l（list）命令查收新邮件，第一次查收时邮件仍在队列中，所以没有显示出标题，但提示有新邮件，再次使用l键，邮件的标题就出现在屏幕上</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 0 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+l
+No messages
+You have new mail.
+Current msg# 1 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+l
+Mail area: bob  1 message  -  1 new
+
+&gt; N  1 bob@ka9q8088                21 Aug 05:21   368 My first mail
+</code></pre></div><p data-pid="Q2nj3Tcl">邮件列表的格式是<code>是否已读 编号 发件人 日期 长度 标题</code>，我们使用<code>r 编号</code>命令就可以读取特定的邮件。</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 1 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+r 1
+Message #1
+Date: Wed, 21 Aug 124 05:21:18 UTC
+
+From: bob@ka9q8088
+
+To: bob
+
+Subject: My first mail
+
+
+This is my first mail, send to myself for test.
+
+
+
+Current msg# 1 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+</code></pre></div><p data-pid="zbQAhtZc">类似的，我们可以发一封邮件给alice</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 1 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+s alice
+Subject: Hello alice
+Enter message.  Terminate with /EX or ^Z in first column (^A aborts):
+I am Bob, a user on the same KA9Q server
+^Z
+</code></pre></div><p data-pid="pZzZA5gg">这时我们使用alice账户登录Telnet，就可以发现电子邮件已经收到了。</p><h3>向其他电脑跨站发送电子邮件</h3><p data-pid="UAaqKdVb">如果只能发送站内信，电子邮件的用途就会有限，那么如何跨越主机发送电子邮件呢？你一定会想起电子邮件标志性的“@”符号，如果知道对方的IP地址，就可以使用<code>用户名@IP地址</code>的方式传递电子邮件了。在两台KA9Q主机之间，这种方式是可以行得通的。比如下面的例子里，Alice向192.168.1.34主机的用户charlie发送了一封电子邮件。</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 5 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+s charlie@192.168.1.34
+Subject: Hello from Alice
+Enter message.  Terminate with /EX or ^Z in first column (^A aborts):
+Here is Alice, a user on KA9Q8088
+/EX
+</code></pre></div><p data-pid="hekBXXzU">但是这样使用电子邮件有一个问题，就是当Charlie收到电子邮件时，他看到的是Alice所在的主机名，却没有对应的IP地址，因此他无法使用<code>sr</code>(send reply)命令直接回信</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 1 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+r 1
+Message #1
+Date: Wed, 21 Aug 124 06:01:44 UTC
+From: alice@ka9q8088
+To: charlie@192.168.1.34
+Subject: Hello from Alice
+
+Here is Alice, a user on KA9Q8088
+</code></pre></div><p data-pid="Mf-94xhe">一个解决的办法是在局域网中添加DNS服务器，让域名和主机名保持一致，它们之间就可以像公众Internet上的服务器之间那样依靠DNS服务器确定邮件路由。但在在小型局域网中设置DNS服务器较为复杂，我们还可以修改KA9Q的<code>domain.txt</code>文件，手工加入对方的主机信息。</p><h3>修改domain.txt文件解决KA9Q邮件互通</h3><p data-pid="r4R9Z5j3"><code>domain.txt</code>文件是KA9Q的DNS解析记录缓存文件，也可以用于手工添加DNS解析项目，例如</p><div class="highlight"><pre><code class="language-bash"><span></span>ka9q8088.    IN    A    <span class="m">192</span>.168.1.33
+book8088a.   IN    A    <span class="m">192</span>.168.1.34
+</code></pre></div><p data-pid="WD4U0WT_">在两台KA9Q主机的<code>domain.txt</code>互相加入对方的DNS A记录，即可实现正常的以<code>用户名@主机名</code>方式的电子邮件互通，下面是一封<code>alice@ka9q8088</code>发给<code>charlie@book8088a</code>的电子邮件，在Charlie的邮箱中编号为2，Charlie只要在KA9Q Telnet菜单使用<code>sr 2</code>命令即可快速回复该邮件。</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 2 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+r 2
+Message #2
+Date: Wed, 21 Aug 124 06:26:32 UTC
+From: alice@ka9q8088
+To: charlie@book8088a
+Subject: Hello Charlie
+
+I added your hostname to my domain.txt file
+</code></pre></div><h3>现代Linux的额外问题</h3><p data-pid="JJpO26-F">借用修改过的<code>domain.txt</code>文件，KA9Q可以向配置好邮件服务器的现代Linux电脑发送邮件，但反之则不行。这是由于现代Linux系统下的邮件服务器非常依赖DNS服务器的MX记录确定邮件传输路径。我们可以使用sendemail小工具来直接向KA9Q的SMTP服务器投递邮件，这个小工具可以在Github上找到，也包含在Debian、Ubuntu等发行版的软件源中。</p><p data-pid="W4GxoiUb"><a href="https://github.com/zehm/sendEmail" class=" wrap external" target="_blank" rel="nofollow noreferrer">GitHub - zehm/sendEmail: SendEmail is a lightweight, command line SMTP email client.</a></p><div class="highlight"><pre><code class="language-text"><span></span>$ sendemail -f "andy@debianfile.lan" -t "alice@ka9q8088" -s 192.168.1.33 -u "From modern linux"
+Reading message body from STDIN because the '-m' option was not used.
+If you are manually typing in a message:
+  - First line must be received within 60 seconds.
+  - End manual input with a CTRL-D on its own line.
+
+Here is andy, I'm send this file from modern linux host.
+Aug 21 06:43:15 desktop-rloal6e sendemail[132]: Message input complete.
+Aug 21 06:43:15 desktop-rloal6e sendemail[132]: ERROR =&gt; Received:      500 Command unrecognized
+Aug 21 06:43:15 desktop-rloal6e sendemail[132]: NOTICE =&gt; EHLO command failed, attempting HELO instead
+Aug 21 06:43:17 desktop-rloal6e sendemail[132]: Email was sent successfully!
+</code></pre></div><p data-pid="vC3qa8im">上面是一个从<code>andy@debianfile</code>向<code>alice@ka9q8088</code>发送邮件的例子，<code>-f</code>是发件人、<code>-t</code>是收件人，<code>-s</code>是服务器，这里使用KA9Q的IP地址，<code>-u</code>则是标题，之后手工输入邮件正文，并以ctrl+d按键结束编辑</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 7 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+8
+Message #8
+From: "andy@debianfile.lan" &lt;andy@debianfile.lan&gt;
+
+To: "alice@ka9q8088" &lt;alice@ka9q8088&gt;
+
+Subject: From modern linux
+
+Date: Wed, 21 Aug 2024 13:43:15 +0000
+
+
+This is a multi-part message in MIME format. To properly display this message yo
+u need a MIME-Version 1.0 compliant Email program.
+
+
+
+------MIME delimiter for sendEmail-273435.329859243
+
+Content-Type: text/plain;
+
+        charset="iso-8859-1"
+
+Content-Transfer-Encoding: 7bit
+
+
+
+Here is andy, I'm send this file from modern linux host.
+
+
+
+
+
+------MIME delimiter for sendEmail-273435.329859243--
+</code></pre></div><p data-pid="Gnr8Pcn6">我们会发现当年Linux也可以与KA9Q互通电子邮件。但KA9Q无法处理当代邮件客户端中使用的multi-part信息，因此将其作为纯文本显示了出来。</p><h3>意外断线后的恢复</h3><p data-pid="G8qMipGK">KA9Q使用简单的.lck文件作为文件锁来避免多线程操作时的数据不一致问题，但如果发生意外断线、重启或软件故障的情况，可能会导致文件锁无法被自动移除而干扰正常使用。常见的故障是用户无法通过Telnet登录、或无法创建新的电子邮件，此时需要手工移除文件锁来恢复用户对数据的访问。</p><p data-pid="X1BUCph1">首先使用exit命令退回到DOS提示符下，然后使用dir命令查找KA9Q所在盘符下所有的.lck文件：</p><div class="highlight"><pre><code class="language-text"><span></span>dir/s *.lck
+</code></pre></div><p data-pid="CkoCv6fU">进入.lck所在的文件夹，使用attrib命令解除文件只读属性，即可使用del命令将其删除，例如</p><div class="highlight"><pre><code class="language-text"><span></span>cd spool\mqueue
+attrib -r *.lck
+del *.lck
+</code></pre></div><p data-pid="c87I1k1n">之后再重新启动KA9Q，就可以继续使用了。</p><figure data-size="normal"><img src="https://picx.zhimg.com/v2-46d5644f550087629e4f1a4ca13c7c98_720w.jpg?source=d16d100b" data-size="normal" data-rawwidth="640" data-rawheight="200" class="origin_image zh-lightbox-thumb" width="640" data-original="https://pic1.zhimg.com/v2-46d5644f550087629e4f1a4ca13c7c98_720w.jpg?source=d16d100b"><figcaption>删除KA9Q的锁文件并</figcaption></figure><h2>设置BBS电子公告牌/论坛</h2><p data-pid="LPmNhP6h">在80、90年代的，许多BBS系统都是基于电子邮件设计的。比如在惠多网（Fido）的术语中，与Web论坛中“帖子”对应的概念是“信”，而与“版面”对应的是“信区”。在这些BBS中，每个信区在技术上都是一个在一定范围内公开访问的电子信箱，而“发帖”的动作实际上是向这些公开信箱中发送电子邮件，“回帖”自然就是对这些电子邮件的回复，只是与回复一般的电子邮件不同，回帖不是发送到发帖者的私人信箱，而是发送到同一信区中。</p><p data-pid="nP66uEi6">在KA9Q中，BBS信区的信息保存在<code>spool\areas</code>文件中，内容类似</p><div class="highlight"><pre><code class="language-text"><span></span>retro    all about retro computing
+talk     general discussion
+</code></pre></div><p data-pid="CiTixSKn">其格式比较简单，内容只包括<code>信区名 信区介绍</code>，需要注意的是信区的介绍不可以省略，否则可能导致用户无法打开信区。可以在KA9Q的Telnet界面中用<code>a</code>(Areas)命令查看信区列表：</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 10 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+a
+Current message area is: alice
+Available areas are:
+alice            Your private mail area
+retro    all about retro computing
+talk     general discussion
+</code></pre></div><p data-pid="ezYRgvFJ">可以看到除了areas文件列出的两个讨论区之外，还有一个“信区”是账号所有者的私人信箱，使用<code>a 信区名</code>就可以在公共讨论信区和个人信箱间切换。</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 1 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+a alice
+You have 9 messages  -  0 new.
+Current msg# 1 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+a talk
+talk: 0 messages.
+Current msg# 0 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+a retro
+retro: 3 messages.
+Current msg# 1 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+l
+Mail area: retro  3 messages  -  3 new
+
+&gt; N  1 alice@ka9q8088              12 Aug 04:04   366 new discussion for retro
+  N  2 bob@ka9q8088                12 Aug 04:09   367 hello everyone
+  N  3 alice@ka9q8088              20 Aug 08:59   441 Re: hello everyone
+Current msg# 1 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+</code></pre></div><p data-pid="O_MZ7IhI">发帖的方式与发站内信一致，使用<code>s 信区名</code>即可将邮件投递到特定信区，使用<code>sr 邮件号</code>则可以发表回帖，回帖会直接发送到发帖者的个人信箱，也会抄送到公开信区。</p><h3>Telnet中的上传/下载与uuencode</h3><p data-pid="wlO_Pqre">KA9Q的Telnet中有两个命令<code>u</code>（Upload）和<code>d</code>（Download），他们为在防火墙后、或者使用拨号Unix shell等不能使用FTP的情况提供了替代的文件上传和下载方式。它操作的目录默认就是用户的FTP目录。上传文件时，使用<code>u myupload.txt</code>，之后Telnet就会等待输入文件内容，使用<code>/EX</code>或Ctrl-z结束。</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 3 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+u myupload.txt
+Send file,  Terminate with /EX or ^Z in first column (^A aborts):
+hello this is a file upload
+/EX
+</code></pre></div><p data-pid="6auwlSoy">上传后的文件可以使用<code>w</code>（What）命令列出</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 3 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+w
+areas                69  4:07  8/12/124   hello.txt            18  3:01  8/20/124
+linux.txt         1,451  8:06  8/20/124   myfile.txt       48,472  5:54  8/20/124
+myupload.txt         29  8:30  8/21/124   net92.exe       189,311 18:55  6/03/92
+6 files. 129,120,256 bytes free. Disk size 132,884,480 bytes.
+</code></pre></div><p data-pid="tTMrmBP7">下载文件则有两个命令，一个是直接以ASCII方式打印在Telnet会话中，即<code>d 文件名</code>，一般用来下载文本文件</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 3 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+d myupload.txt
+hello this is a file upload
+</code></pre></div><p data-pid="QUNoXxIm">另一种方式则是将文件经过uuencode编码打印在Telnet会话中，即<code>du 文件名</code>，一般用来下载图片、程序等二进制文件</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 3 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+du myupload.txt
+begin 755 /ftphome/alice/myupload.txt
+=:&amp;5L;&amp;\@=&amp;AI&lt;R!I&lt;R!A(&amp;9I;&amp;4@=7!L;V%D#0ID
+
+end
+size 29
+</code></pre></div><p data-pid="sWnJWFQS">uuencode同样也适用于将二进制文件转换为纯文本格式，并通过电子邮件传递、或是通过BBS分享，在前面“准备E-Mail服务器的的文件结构”一节中提到的<code>NOS_MISC.ZIP</code>文件中可以找到DOS下使用的uuencode/uudecode工具。而在Linux系统下，uuencode是GNU Sharutils的一部分：<a href="https://www.gnu.org/software/sharutils/" class=" wrap external" target="_blank" rel="nofollow noreferrer">Free Software Foundation (FSF)</a>。</p><p data-pid="QcXuMDd8">不过仅仅使用KA9Q自己的Telnet终端并不能实现文件的上传/下载，因为它没有复制、粘贴或将会话保存到文件的功能。在有剪贴板的图形界面操作系统中，可以用复制粘贴功能将文件中可以找到DOS下使用的uuencode编码好的内容粘贴到Telnet会话中。而DOS下也有MS-Kermit这样功能丰富的通信软件提供session log和transmit命令用于保存Telnet会话内容和将文件发送到Telnet会话中。</p><h2>设置Finger服务器</h2><p data-pid="i7bTxsUL">许多Web论坛都会有一个“看谁在线”的功能，每个用户也都有一些注册信息，比如电子邮箱、生日等等，这增强了Internet BBS的社交属性。而这些功能的一个起源，就是Finger协议。该协议可以用来查看在线的用户，也可以用来查看特定用户的资料信息。KA9Q也内置了一个Finger服务器，使用<code>start finger</code>命令就可以启动它。</p><p data-pid="0G1HYDFE">但KA9Q的Finger服务器并不能直接读取<code>ftpusers</code>文件，Finger协议的用户信息是使用KA9Q盘符跟目录下的<code>finger</code>目录提供的，每个用户的个人资料以纯文本文件放在finger目录下以用户名命名的文件中，例如我们的KA9Q放在N:盘符，用户alice的信息就在<code>N:\finger\alice</code>文件中。当Finger服务器收到查询请求时，就会自动到finger目录下寻找对应的用户信息。</p><p data-pid="MGbpLeZW">KA9Q的Telnet界面的<code>f</code>（finger）命令可以用来访问Finger服务器，它的基本用法有两个，一个是查询服务器上的用户列表和在线用户，使用<code>f @主机名或IP</code>的形式操作：</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 1 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+f @192.168.1.33
+Trying 192.168.1.33:79...  The escape character is: CTRL-X
+Connected.
+
+Known users on this system:
+alice
+bob
+
+Current remote users:
+User       State    S#  Where
+alice      CMD      132 192.168.1.73:63769
+bob        CMD      136 192.168.1.73:53560
+Disconnected Normal
+</code></pre></div><p data-pid="1KiG9hjE">另一种则是<code>f 用户名@主机名或IP</code>，用来查看特定用户的信息。</p><div class="highlight"><pre><code class="language-text"><span></span>Current msg# 1 : A,B,C,D,E,F,G,H,I,J,K,L,N,R,S,T,U,V,W,Z,? &gt;
+f bob@ka9q8088
+Trying 192.168.1.33:79...  The escape character is: CTRL-X
+Connected.
+
+**/This is bob\***
+Phone: 1234567
+Email: bob@ka9q8088
+Disconnected Normal
+</code></pre></div><p data-pid="yA5J_Ovb">在Windows或Linux电脑上，也提供了finger命令，下面是在Windows电脑上操作，查询KA9Q的Finger服务的例子：</p><div class="highlight"><pre><code class="language-text"><span></span>C:\&gt;finger alice@192.168.1.33
+
+[192.168.1.33:79]
+My name is Alice, I'm from wonderland
+
+
+C:\&gt;finger @192.168.1.33
+
+[192.168.1.33:79]
+Known users on this system:
+alice
+bob
+
+Current remote users:
+User       State    S#  Where
+alice      CMD      132 192.168.1.73:63769
+bob        CMD      136 192.168.1.73:53560
+</code></pre></div><h2>让服务随KA9Q一同启动</h2><p data-pid="r8MszxWK">在KA9Q的自动配置文件<code>autoexec.net</code>中，加入服务相应的<code>start</code>命令，就可以让服务在加载KA9Q时自动启动。下面是一个完整配置文件的例子：</p><div class="highlight"><pre><code class="language-text"><span></span>attach packet 0x60 en0 1024 1500
+ifconfig en0 ipaddress 192.168.1.33
+ifconfig en0 netmask 0xffffff00
+ifconfig en0 broadcast 192.168.1.255
+route add default en0 192.168.1.254
+domain addserver 192.168.1.254
+hostname mydospc1
+
+start ftp
+start telnet
+start smtp
+start finger
+</code></pre></div><p data-pid="Sf5alABX">配置文件的前半截在本文上集有有所介绍，用于加载网卡、设置IP地址、主机名等基础的联网信息。而后面的四行则是分别启动FTP、Telnet、SMTP和Finger协议的服务器。通过这些设置，我们在DOS和KA9Q NOS上搭建的服务器就具备了在90年代初的时间背景下相当完整的Internet功能，可以用于共享文件、传送电子邮件、BBS讨论等，是我们理解WWW出现之前人们如何使用Internet的极好示例。</p></body></html>
